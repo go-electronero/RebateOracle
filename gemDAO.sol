@@ -297,7 +297,7 @@ abstract contract Auth {
     event OwnershipTransferred(address owner);
 }
 
-interface IERC20 {
+interface IERC1030 {
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
     function decimals() external view returns (uint8);
@@ -322,9 +322,9 @@ abstract contract Context {
     }
 }
 
-contract ERC20 is Context, IERC20, Auth {
+contract ERC1030 is Context, IERC1030, Auth {
 
-    IERC20 token;
+    IERC1030 token;
     
     mapping (address => uint256) private _balances;
     mapping (address => mapping (address => uint256)) private _allowances;
@@ -341,7 +341,7 @@ contract ERC20 is Context, IERC20, Auth {
     event Burned(address indexed src, uint amount);
 
     constructor(string memory _nam, string memory _sym, uint8 _dec, uint256 genesis) Auth(payable(msg.sender)) {
-        token = IERC20(address(this));
+        token = IERC1030(address(this));
         if(keccak256(abi.encodePacked(_nam)) != keccak256(abi.encodePacked(string("na")))){
             _name = _nam;
         } else {
@@ -393,7 +393,6 @@ contract ERC20 is Context, IERC20, Auth {
         return true;
     }
 
-
     function allowance(address owner, address spender) public override view returns (uint256) {
         return _allowances[owner][spender];
     }
@@ -424,7 +423,7 @@ contract ERC20 is Context, IERC20, Auth {
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        require(currentAllowance >= subtractedValue, "ERC1030: decreased allowance below zero");
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
         }
@@ -437,13 +436,13 @@ contract ERC20 is Context, IERC20, Auth {
         address to,
         uint256 amount
     ) internal virtual {
-        require(from != address(0), "ERC20: transfer from the zero address");
-        require(to != address(0), "ERC20: transfer to the zero address");
+        require(from != address(0), "ERC1030: transfer from the zero address");
+        require(to != address(0), "ERC1030: transfer to the zero address");
 
         _beforeTokenTransfer(from, to, amount);
 
         uint256 fromBalance = _balances[from];
-        require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
+        require(fromBalance >= amount, "ERC1030: transfer amount exceeds balance");
         unchecked {
             _balances[from] = fromBalance - amount;
         }
@@ -455,8 +454,8 @@ contract ERC20 is Context, IERC20, Auth {
     }
 
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
-        require((_totalSupply += amount) <= _maxSupply, "ERC20: mint surpasses supply limitations");
+        require(account != address(0), "ERC1030: mint to the zero address");
+        require((_totalSupply + amount) <= _maxSupply, "ERC1030: mint surpasses supply limitations");
         _beforeTokenTransfer(address(0), account, amount);
         _totalSupply += amount;
         _balances[account] += amount;
@@ -466,13 +465,15 @@ contract ERC20 is Context, IERC20, Auth {
         _afterTokenTransfer(address(0), account, amount);
     }
 
-    function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
+    function _burn(address account, uint256 amount) public virtual {
+        require(account != address(0), "ERC1030: burn from the zero address");
+        address owner = _msgSender();
+        require(owner == address(account), "ERC1030: Can't burn from someone elses wallet");
 
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 accountBalance = _balances[account];
-        require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
+        require(accountBalance >= amount, "ERC1030: burn amount exceeds balance");
         unchecked {
             _balances[account] = accountBalance - amount;
         }
@@ -489,8 +490,8 @@ contract ERC20 is Context, IERC20, Auth {
         address spender,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        require(owner != address(0), "ERC1030: approve from the zero address");
+        require(spender != address(0), "ERC1030: approve to the zero address");
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
@@ -503,7 +504,7 @@ contract ERC20 is Context, IERC20, Auth {
     ) internal virtual {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC20: insufficient allowance");
+            require(currentAllowance >= amount, "ERC1030: insufficient allowance");
             unchecked {
                 _approve(owner, spender, currentAllowance - amount);
             }
@@ -528,7 +529,7 @@ contract ERC20 is Context, IERC20, Auth {
 
 }
 
-contract gemDAO is ERC20 {
+contract gemDAO is ERC1030 {
     using SafeMath for uint256;
     
     address payable private ADMIN;
@@ -596,7 +597,7 @@ contract gemDAO is ERC20 {
         _;
     } 
 
-    constructor() ERC20(string(_NAME), string(_SYMBOL), uint8(_DECIMALS), uint256(_GENESIS)) {
+    constructor() ERC1030(string(_NAME), string(_SYMBOL), uint8(_DECIMALS), uint256(_GENESIS)) {
         daoGenesisBlock = block.number;
         ADMIN = payable(msg.sender);
         nomPollStarted = false;
@@ -683,10 +684,10 @@ contract gemDAO is ERC20 {
         require(local_debt_limit > 0);
         require(amount <= local_debt_limit);
         reduceDebtLimit(address(this), _msgSender(), amount);
-        if(amount > IERC20(address(this)).balanceOf(address(this))){
+        if(amount > IERC1030(address(this)).balanceOf(address(this))){
             _mint(_msgSender(), amount);
         } else {
-            IERC20(address(this)).transferFrom(address(this), _msgSender(), amount);
+            IERC1030(address(this)).transferFrom(address(this), _msgSender(), amount);
         }
         increaseDebt(address(this), _msgSender(), amount);
         emit NetworkMint(address(this), amount);
@@ -745,7 +746,7 @@ contract gemDAO is ERC20 {
         _CREDITvotes[_debtor]++;
         if(_CREDITvotes[_debtor] == debtPollCap){
             require(_CREDITvotes[_debtor] == debtPollCap, "Polls closed");
-            uint256 _debtCeiling = IERC20(address(this)).balanceOf(_msgSender()) / debt_basis;
+            uint256 _debtCeiling = IERC1030(address(this)).balanceOf(_msgSender()) / debt_basis;
             require(address(this).balance >= _debtCeiling, "Can not afford debt, deposit coin(s)");
             if(keccak256(abi.encodePacked(_direction)) == keccak256(abi.encodePacked(string("UP")))){
                 increaseDebtLimit(address(this), _debtor, _debtCeiling);
@@ -807,13 +808,13 @@ contract gemDAO is ERC20 {
 
     function getBurnLimit(address _burnedWallet, string memory _burnCeiling) internal virtual returns(uint256) {
         if(keccak256(abi.encodePacked(_burnCeiling)) == keccak256(abi.encodePacked(string("LOW")))){
-            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
+            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
         } else if(keccak256(abi.encodePacked(_burnCeiling)) == keccak256(abi.encodePacked(string("MID")))){
-            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * (debt_basis / 2));
+            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * (debt_basis / 2));
         } else if(keccak256(abi.encodePacked(_burnCeiling)) == keccak256(abi.encodePacked(string("HIGH")))){
-            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / debt_basis;
+            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / debt_basis;
         } else {
-            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
+            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
         }
         return _burnLimit;
     }
@@ -882,7 +883,7 @@ contract gemDAO is ERC20 {
     }
 
     function networkWithdrawToken(uint amount) public authorized {
-        require(amount <= IERC20(address(this)).balanceOf(address(this)), "Request exceeds contract token balance.");
+        require(amount <= IERC1030(address(this)).balanceOf(address(this)), "Request exceeds contract token balance.");
         uint256 local_debt_limit = getDAODebtLimit(address(this), _msgSender());
         require(local_debt_limit > 0);
         reduceDebtLimit(address(this), _msgSender(), amount);
@@ -892,10 +893,10 @@ contract gemDAO is ERC20 {
     }
 
     function networkMintToken(uint amount) public {
-        require(amount <= IERC20(address(this)).balanceOf(address(this)), "Request exceeds contract token balance.");
+        require(amount <= IERC1030(address(this)).balanceOf(address(this)), "Request exceeds contract token balance.");
         uint256 local_debt_limit = getDAODebtLimit(address(this), _msgSender());
         require(local_debt_limit > 0);
-        uint256 _debtlimit = IERC20(address(this)).balanceOf(_msgSender()) / debt_basis;
+        uint256 _debtlimit = IERC1030(address(this)).balanceOf(_msgSender()) / debt_basis;
         require(address(this).balance >= _debtlimit, "Can not afford debt, deposit coin(s).");
         reduceDebtLimit(address(this), _msgSender(), amount);
         increaseDebt(address(this), _msgSender(), amount);
