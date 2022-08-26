@@ -419,15 +419,15 @@ contract StakeGovernanceDAO is MSG_, Token {
         user.sToken.totalStaked = 0;
     }  
 	
-	function getContractETHBalance() public view returns (uint) {
-	    return address(this).balance;
-	}  
+    function getContractETHBalance() public view returns (uint) {
+    	return address(this).balance;
+    }  
 	
-	function getContractTokenBalance() public view returns (uint) {
-		return balanceOf(address(this));
-	}
+    function getContractTokenBalance() public view returns (uint) {
+    	return balanceOf(address(this));
+    }
 	
-	function getUserTokenBalance(address _addr) public view returns (uint) {
-		return balanceOf(_addr);
-	}
+    function getUserTokenBalance(address _addr) public view returns (uint) {
+    	return balanceOf(_addr);
+    }
 }
