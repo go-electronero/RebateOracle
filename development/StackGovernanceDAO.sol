@@ -197,7 +197,7 @@ contract Token is MSG_, ERC20 {
 
     constructor() {
         _name = "Governance DAO Token";
-        _symbol = "STAKE-GV";
+        _symbol = "STACK-GV";
         _decimals = 18;
         feeAddress = payable(_msgSender());
         devFeeAddress = payable(_msgSender());
@@ -207,7 +207,7 @@ contract Token is MSG_, ERC20 {
     }
 }
 
-contract StakeGovernanceDAO is MSG_, Token {
+contract StackGovernanceDAO is MSG_, Token {
     using SafeMath for uint256;
 
     uint private startTime; 
@@ -216,14 +216,14 @@ contract StakeGovernanceDAO is MSG_, Token {
     address payable private DEVELOPER;
     address private rebateOracleAddress;
     
-    uint public totalEtherStaked;
-    uint public totalTokenStaked;
+    uint public totalEtherStacked;
+    uint public totalTokenStacked;
     
     uint private constant DEV_FEE = 120;
     uint private constant MINT_AMOUNT = 100000 ether;      
     uint private constant PERCENT_DIVIDER = 1000;
     uint private constant PERCENT_ROUNDING = 100;
-    uint private constant TIME_TO_UNSTAKE = 1 minutes;
+    uint private constant TIME_TO_UNSTACK = 1 minutes;
     uint private constant TIME_TO_CLAIM = 1 minutes;
     uint private constant GENERAL_CLASS = 1 ether;    
     uint private GENERAL_REBATE_SHARDS = 1*10**17; // 0.1
@@ -238,16 +238,16 @@ contract StakeGovernanceDAO is MSG_, Token {
     
     mapping(address => User) private users;
     
-    struct Staking {
-        uint totalStaked; 
-        uint lastStakeTime;    
+    struct Stacking {
+        uint totalStacked; 
+        uint lastStackTime;    
         uint lastClaimed; 
         uint tier;
     }
     
     struct User {
-        Staking sNative;
-        Staking sToken;
+        Stacking sNative;
+        Stacking sToken;
     }
 
     event Deposit(address indexed dst, uint amount);
@@ -273,12 +273,12 @@ contract StakeGovernanceDAO is MSG_, Token {
     } 
     
     fallback() external payable {
-        deposit();
+        stackNativeCoin();
         emit ReceivedFallback(_msgSender(), msg.value);
     }
     
     receive() external payable {
-        deposit();
+        stackNativeCoin();
         emit Received(_msgSender(), msg.value);
     }
 
@@ -286,7 +286,7 @@ contract StakeGovernanceDAO is MSG_, Token {
         rebateOracleAddress = address(rebateOracle);
     }
 
-    function deposit() public payable returns(bool) {
+    function stackNativeCoin() public payable returns(bool) {
         User storage user = users[_msgSender()];
         require(address(rebateOracleAddress) != address(0),"Not enabled");
         uint256 ethAmount = msg.value;
@@ -309,9 +309,9 @@ contract StakeGovernanceDAO is MSG_, Token {
             } else {
                 revert("Hmm, please try again with a different amount of ether");
             }
-            user.sNative.lastStakeTime = block.timestamp;
-            user.sNative.totalStaked = user.sNative.totalStaked.add(ethAmount);
-            totalEtherStaked = totalEtherStaked.add(ethAmount); 
+            user.sNative.lastStackTime = block.timestamp;
+            user.sNative.totalStacked = user.sNative.totalStacked.add(ethAmount);
+            totalEtherStacked = totalEtherStacked.add(ethAmount); 
             _mint(_msgSender(), ethAmount);
             emit Deposit(_msgSender(), msg.value);
             return true;
@@ -340,7 +340,7 @@ contract StakeGovernanceDAO is MSG_, Token {
     function claim() public {
         User storage user = users[_msgSender()];
         require(block.timestamp > user.sNative.lastClaimed.add(TIME_TO_CLAIM), "Claim not available yet");
-        uint tokenAmount = user.sToken.totalStaked;
+        uint tokenAmount = user.sToken.totalStacked;
         require(uint(tokenAmount) > uint(0),"Can't claim with 0 token");
         uint256 pool = address(this).balance;
         require(uint256(pool) > GENERAL_REBATE_SHARDS,"Exhausted supply");
@@ -367,21 +367,21 @@ contract StakeGovernanceDAO is MSG_, Token {
     
     function withdraw() public {
         User storage user = users[_msgSender()];
-        require(block.timestamp > user.sNative.lastStakeTime.add(TIME_TO_CLAIM), "Claim not available yet");
-        uint ethAmount = user.sNative.totalStaked;
+        require(block.timestamp > user.sNative.lastStackTime.add(TIME_TO_CLAIM), "Claim not available yet");
+        uint ethAmount = user.sNative.totalStacked;
         require(uint(ethAmount) > uint(0),"Can't withdraw 0 ether");
-        totalEtherStaked = totalEtherStaked.sub(ethAmount); 
-        payable(_msgSender()).transfer(totalEtherStaked);
-        user.sNative.totalStaked = 0;
+        totalEtherStacked = totalEtherStacked.sub(ethAmount); 
+        payable(_msgSender()).transfer(totalEtherStacked);
+        user.sNative.totalStacked = 0;
 
         emit Withdrawal(_msgSender(), ethAmount);
     }   
 
-    function stakeToken(uint tokenAmount) public {
-        require(uint(tokenAmount) > uint(0),"Can't stake 0 token");
+    function stackToken(uint tokenAmount) public {
+        require(uint(tokenAmount) > uint(0),"Can't stack 0 token");
         User storage user = users[_msgSender()];
 		    uint256 fee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
-        require(block.timestamp >= startTime, "Stake not available yet");
+        require(block.timestamp >= startTime, "Stacking not available yet");
         require(tokenAmount <= balanceOf(_msgSender()), "Insufficient Token Balance");
         tokenAmount = tokenAmount.sub(fee);
 
@@ -404,19 +404,19 @@ contract StakeGovernanceDAO is MSG_, Token {
         _transfer(_msgSender(), address(this), tokenAmount, false);
         _transfer(_msgSender(), address(DEVELOPER), fee, false);
 
-        user.sToken.lastStakeTime = block.timestamp;
-        user.sToken.totalStaked = user.sToken.totalStaked.add(tokenAmount);
-        totalTokenStaked = totalTokenStaked.add(tokenAmount); 
+        user.sToken.lastStackTime = block.timestamp;
+        user.sToken.totalStacked = user.sToken.totalStacked.add(tokenAmount);
+        totalTokenStacked = totalTokenStacked.add(tokenAmount); 
     } 
     
-    function unStakeToken() public {
+    function unStackToken() public {
         User storage user = users[_msgSender()];
-        require(block.timestamp > user.sToken.lastStakeTime.add(TIME_TO_UNSTAKE), "Un-Stake not available yet");
-        uint tokenAmount = user.sToken.totalStaked;
-        require(uint(tokenAmount) > uint(0),"Can't stake 0 token");
-        totalTokenStaked = totalTokenStaked.sub(tokenAmount); 
+        require(block.timestamp > user.sToken.lastStackTime.add(TIME_TO_UNSTACK), "Un-Stack not available yet");
+        uint tokenAmount = user.sToken.totalStacked;
+        require(uint(tokenAmount) > uint(0),"Can't stack 0 token");
+        totalTokenStacked = totalTokenStacked.sub(tokenAmount); 
         _transfer(address(this), _msgSender(), tokenAmount, false);
-        user.sToken.totalStaked = 0;
+        user.sToken.totalStacked = 0;
     }  
 	
     function getContractETHBalance() public view returns (uint) {
