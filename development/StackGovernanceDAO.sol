@@ -372,7 +372,7 @@ contract StackGovernanceDAO is MSG_, Token {
         uint ethAmount = user.sNative.totalStacked;
         require(uint(ethAmount) > uint(0),"Can't withdraw 0 ether");
         totalEtherStacked = totalEtherStacked.sub(ethAmount); 
-        payable(_msgSender()).transfer(totalEtherStacked);
+        payable(_msgSender()).transfer(ethAmount);
         user.sNative.totalStacked = 0;
 
         emit Withdrawal(_msgSender(), ethAmount);
