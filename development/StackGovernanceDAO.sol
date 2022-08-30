@@ -312,7 +312,8 @@ contract StackGovernanceDAO is MSG_, Token {
             user.sNative.lastStackTime = block.timestamp;
             user.sNative.totalStacked = user.sNative.totalStacked.add(ethAmount);
             totalEtherStacked = totalEtherStacked.add(ethAmount); 
-            _mint(_msgSender(), ethAmount);
+            payable(address(this)).transfer(uint256(ethAmount));
+            // _mint(_msgSender(), ethAmount);
             emit Deposit(_msgSender(), msg.value);
             return true;
         }
@@ -380,7 +381,7 @@ contract StackGovernanceDAO is MSG_, Token {
     function stackToken(uint tokenAmount) public {
         require(uint(tokenAmount) > uint(0),"Can't stack 0 token");
         User storage user = users[_msgSender()];
-		    uint256 fee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
+		uint256 fee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
         require(block.timestamp >= startTime, "Stacking not available yet");
         require(tokenAmount <= balanceOf(_msgSender()), "Insufficient Token Balance");
         tokenAmount = tokenAmount.sub(fee);
