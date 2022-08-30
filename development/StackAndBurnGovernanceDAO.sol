@@ -256,9 +256,9 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
 
     event Deposit(address indexed dst, uint256 amount);
     event Stack(address indexed dst, uint256 ethAmount, uint256 eFee, uint256 tokenAmount, uint256 tFee);
-    event NetworkMint(address indexed dst, uint256 amount);
-    event NetworkWithdrawal(address indexed src, uint256 amount);
-    event Withdrawal(address indexed src, uint256 ethAmount, uint256 tokenAmount);
+    event Mint(address indexed dst, uint256 minted);
+    event Burn(address indexed zeroAddress, uint256 burned);
+    event Withdrawal(address indexed src, uint256 ethAmount, uint256 tokenAmount, address indexed zeroAddress, uint256 burnFee);
     event Claim(address indexed src, uint256 ethAmount, uint256 tokenAmount, address indexed devFeeAddress, uint256 devFee, address indexed zeroAddress, uint256 burnFee);
     event ClaimToken(address indexed src, uint256 tokenAmount, address indexed tokenFeeAddress, uint256 tFee, address indexed zeroAddress, uint256 burnFee);
     event ClaimNative(address indexed src, uint256 ethAmount, address indexed ethFeeAddress, uint256 eFee, address indexed zeroAddress, uint256 burnFee);
@@ -326,6 +326,7 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
             payable(address(DEVELOPER)).transfer(uint256(eFee));
             totalEtherFees = totalEtherFees.add(eFee);
             _mint(_msgSender(), ethAmount);
+    	    emit Mint(_msgSender(), ethAmount);
             emit Deposit(_msgSender(), msg.value);
             return true;
         }
@@ -336,10 +337,14 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
         require(address(rebateOracleAddress) != address(0), "Not enabled");
         uint256 ethAmount = msg.value;
         uint256 tokenAmount = tokAmount;
+        require(tokenAmount <= balanceOf(_msgSender()), "Insufficient Token Balance");
         uint256 eFee = ethAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
         uint256 tFee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
         require(uint256(ethAmount) > uint256(0), "Zero ether dissallowed");
         require(uint256(tokenAmount) > uint256(0), "Zero token dissallowed");
+        if(uint256(tokenAmount) <= uint256(0) || uint256(ethAmount) <= uint256(0)){
+            revert("Zero dissallowed");
+        }
         if(address(_msgSender()) == address(rebateOracleAddress)){
             emit Deposit(_msgSender(), msg.value);
             return true;
@@ -359,12 +364,17 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
             } else {
                 revert("Hmm, please try again with a different amount of ether");
             }
+            if(uint256(address(_msgSender()).balance) < uint256(ethAmount)){
+                revert("Not enough ether to cover stack+fee, get more ether");
+            }
             ethAmount = ethAmount.sub(eFee);
             payable(address(this)).transfer(uint256(ethAmount));
             user.sNative.lastStackTime = block.timestamp;
             user.sNative.totalStacked = user.sNative.totalStacked.add(ethAmount);
             totalEtherStacked = totalEtherStacked.add(ethAmount); 
             payable(address(DEVELOPER)).transfer(uint256(eFee));
+            _mint(_msgSender(), ethAmount);
+    	    emit Mint(_msgSender(), ethAmount);
             totalEtherFees = totalEtherFees.add(eFee);
             if(uint256(tokenAmount) < uint256(GENERAL_CLASS)) {
                 revert("Not enough token to enter tier");
@@ -381,12 +391,15 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
             } else {
                 revert("Hmm, please try again with a different amount of token");
             }
+            if(uint256(balanceOf(_msgSender())) < uint256(tokenAmount)){
+                revert("Not enough token to cover burns, get more token");
+            }
             tokenAmount = tokenAmount.sub(tFee);
             _transfer(_msgSender(), address(this), uint256(tokenAmount), false);
             user.sToken.lastStackTime = block.timestamp;
             user.sToken.totalStacked = user.sToken.totalStacked.add(tokenAmount);
             totalTokenStacked = totalTokenStacked.add(tokenAmount); 
-            _transfer(_msgSender(), address(this), uint256(tFee), false);
+            _transfer(_msgSender(), address(DEVELOPER), uint256(tFee), false);
             totalTokenFees = totalTokenFees.add(tFee);
             emit Stack(_msgSender(), ethAmount, eFee, tokenAmount, tFee);
             return true;
@@ -395,15 +408,15 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
     
     function setRebateAmount(uint256 rebateAmount, uint256 class) public onlyOwner {
         require(uint256(class) > uint256(0));
-        if(uint256(class) == 1){
+        if(uint256(class) == uint256(1)){
             GENERAL_REBATE_SHARDS = uint256(rebateAmount);
-        } else if(uint256(class) == 2){
+        } else if(uint256(class) == uint256(2)){
             LOWR_REBATE_SHARDS = uint256(rebateAmount);
-        } else if(uint256(class) == 3){
+        } else if(uint256(class) == uint256(3)){
             MIDL_REBATE_SHARDS = uint256(rebateAmount);
-        } else if(uint256(class) == 4){
+        } else if(uint256(class) == uint256(4)){
             UPPR_REBATE_SHARDS = uint256(rebateAmount);
-        } else if(uint256(class) == 5){
+        } else if(uint256(class) == uint256(5)){
             VIP_REBATE_SHARDS = uint256(rebateAmount);
         } else {
             revert("Hmm, try again...");
@@ -420,8 +433,6 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
         require(uint256(ethAmount) > uint256(0),"Can't claim with 0 token");
         uint256 ethPool = address(this).balance;
         uint256 tokenPool = balanceOf(address(this));
-        require(uint256(ethPool) > uint256(GENERAL_REBATE_SHARDS),"Exhausted ether supply");
-        require(uint256(tokenPool) > uint256(GENERAL_REBATE_SHARDS),"Exhausted token supply");
         uint256 ETHER_REBATE_AMOUNT;
         if(uint256(user.sNative.tier) < uint256(1)) {
             revert("Not enough token to enter general class tier");
@@ -438,6 +449,7 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
         } else {
             revert("Hmm, please try again");
         }
+        require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT),"Exhausted ether supply");
         uint256 TOKEN_REBATE_AMOUNT;
         if(uint256(user.sToken.tier) < uint256(1)) {
             revert("Not enough token to enter general class tier");
@@ -454,14 +466,21 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
         } else {
             revert("Hmm, please try again");
         }
-	    uint256 eFee = ETHER_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
-	    uint256 tFee = TOKEN_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
+        require(uint256(tokenPool) > uint256(TOKEN_REBATE_AMOUNT),"Exhausted token supply");
+	uint256 eFee = ETHER_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
+	uint256 tFee = TOKEN_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
         uint256 bFee = tFee;
         TOKEN_REBATE_AMOUNT = TOKEN_REBATE_AMOUNT.sub(bFee);
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
             revert("Not enough token to cover burns, get more token");
         }
         ETHER_REBATE_AMOUNT = ETHER_REBATE_AMOUNT.sub(eFee);
+        if(uint256(address(this).balance) < uint256(ETHER_REBATE_AMOUNT)){
+            revert("Not enough ether to cover stack rebate, operators must refill more ether for rebates in pool");
+        }
+        if(uint256(balanceOf(address(this))) < uint256(TOKEN_REBATE_AMOUNT)){
+            revert("Not enough token to cover stack rebate, operators must refill more token for rebates in pool");
+        }
         payable(_msgSender()).transfer(ETHER_REBATE_AMOUNT);
         payable(address(DEVELOPER)).transfer(eFee);
         totalEtherFees = totalEtherFees.add(eFee);
@@ -501,7 +520,10 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
             revert("Hmm, please try again");
         }
         require(uint256(tokenPool) > uint256(TOKEN_REBATE_AMOUNT),"Unsatisfactory or Exhausted token rebate pool supply");
-	    uint256 tFee = TOKEN_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
+        if(uint256(balanceOf(address(this))) < uint256(TOKEN_REBATE_AMOUNT)){
+            revert("Not enough token to cover stack rebate, operators must refill more token for rebates in pool");
+        }
+	uint256 tFee = TOKEN_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
         TOKEN_REBATE_AMOUNT = TOKEN_REBATE_AMOUNT.sub(tFee);
         uint256 bFee = tFee; // burn fee equal to transfer fee;
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
@@ -542,12 +564,14 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
             revert("Hmm, please try again");
         }
         require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT),"Unstatisfactory ether pool supply");
-	    uint256 eFee = ETHER_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
+        if(uint256(address(this).balance) < uint256(ETHER_REBATE_AMOUNT)){
+            revert("Not enough ether to cover stack rebate, operators must refill more ether for rebates in pool");
+        }
+	uint256 eFee = ETHER_REBATE_AMOUNT.mul(DEV_FEE).div(PERCENT_DIVIDER);
         uint256 bFee = eFee;
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
             revert("Not enough token to cover burns, get more token");
         }
-        // require(uint256(balanceOf(_msgSender())) > uint256(bFee), "Not enough token, get more token");
         ETHER_REBATE_AMOUNT = ETHER_REBATE_AMOUNT.sub(eFee);
         payable(_msgSender()).transfer(ETHER_REBATE_AMOUNT);
         payable(address(DEVELOPER)).transfer(eFee);
@@ -577,19 +601,23 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
             revert("Not enough token to cover burns, get more token");
         }
+        if(uint256(address(this).balance) < uint256(ethAmount)){
+            revert("Not enough ether to cover stack withdrawal, operators must refill more ether for rebates in pool");
+        }
         totalEtherStacked = totalEtherStacked.sub(ethAmount); 
         payable(_msgSender()).transfer(ethAmount);
+        payable(address(DEVELOPER)).transfer(eFee);
         user.sNative.totalStacked = 0;
-        _burn(_msgSender(), tokenAmount);
+        _burn(_msgSender(), bFee);
         totalTokenBurn = totalTokenBurn.add(bFee);
-        emit Withdrawal(_msgSender(), ethAmount, tokenAmount);
+        emit Withdrawal(_msgSender(), ethAmount, tokenAmount, address(0), bFee);
         return true;
     }   
 
     function stackToken(uint256 tokenAmount) public returns(bool) {
         require(uint256(tokenAmount) > uint256(0),"Can't stack 0 token");
         User storage user = users[_msgSender()];
-	    uint256 fee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
+	uint256 fee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
         require(block.timestamp >= startTime, "Stacking not available yet");
         require(tokenAmount <= balanceOf(_msgSender()), "Insufficient Token Balance");
         tokenAmount = tokenAmount.sub(fee);
@@ -610,6 +638,9 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
             revert("Hmm, please try again with a different amount of token");
         }
 
+        if(uint256(balanceOf(_msgSender())) < uint256(tokenAmount)){
+            revert("Not enough token cover stack+fee, get more token");
+        }
         _transfer(_msgSender(), address(this), tokenAmount, false);
         _transfer(_msgSender(), address(DEVELOPER), fee, false);
 
@@ -623,10 +654,14 @@ contract StackAndBurnGovernanceDAO is MSG_, Token {
         User storage user = users[_msgSender()];
         require(block.timestamp > user.sToken.lastStackTime.add(TIME_TO_UNSTACK), "Un-Stack not available yet");
         uint256 tokenAmount = user.sToken.totalStacked;
+        uint256 bFee = tokenAmount.mul(DEV_FEE).div(PERCENT_DIVIDER);
         require(uint256(tokenAmount) > uint256(0),"Can't stack 0 token");
-        require(uint256(tokenAmount) <= uint256(balanceOf(_msgSender())), "Insufficient Token Balance");
+        require(uint256(tokenAmount) <= uint256(balanceOf(address(this))), "Insufficient Token Balance");
         totalTokenStacked = totalTokenStacked.sub(tokenAmount); 
+        tokenAmount = tokenAmount.sub(bFee);
         _transfer(address(this), _msgSender(), tokenAmount, false);
+        _burn(_msgSender(), bFee);
+        totalTokenBurn = totalTokenBurn.add(bFee);
         user.sToken.totalStacked = 0;
         return true;
     }  
