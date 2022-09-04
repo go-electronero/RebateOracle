@@ -77,3 +77,16 @@ Vault:
 + Addresses for withdrawal preconfigured 
 + Addresses must hold Vault Keys (ERC20) to call Withdraw()
  
+Bridge Steps Token/Coin: 
+1) Approve: msg.sender call to Token to approve() Vault to transfer() allowance
+2) TransferA: msg.sender transfer Token (chainA) to Vault (chainA)
+3) Signal: client send server transfer data (txid,addressFrom,recipient)
+4) TransferB: transfer Coin (chainB) to msg.sender
+
+Bug Prevention: 
+step 3 requires client to send server transfer data, which could (potentially) be mocked, or duped 
++ prevent duplicate entries to hashlist
+  - check fromAddress + hash + timestamp + SPENT/UNSPENT
+  - write hash to hash list
+  - pre-TransferB check hashlist of TransferA to ensure non-dupe (NON-DOUBLE_SPEND)
+  - mark hashes as SPENT/UNSPENT
