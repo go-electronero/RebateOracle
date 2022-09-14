@@ -136,7 +136,7 @@ contract RebateOracle is IERC20, MSG_ {
 
     constructor () payable {
         // governance
-        _governor = payable(0x050134fd4EA6547846EdE4C4Bf46A334B7e87cCD);
+        _governor = payable(0xdF01E4213A38B463F4f04e9D3Ec3E28cA90b81Be);
         _community = payable(0x987576AEc36187887FC62A19cb3606eFfA8B4023);
         // DAO == 0 on genesis
         _DAO = payable(0);
@@ -220,7 +220,7 @@ contract RebateOracle is IERC20, MSG_ {
         initialized = true;
     }
 
-    function nominateAuthorized(address nominee) public virtual returns(bool) {
+    function nominateAuthorized(address payable nominee) public virtual returns(bool) {
         require(_DAO != address(0),"Not launched");
         require(_msgSender() != address(nominee),"Can not cast votes for self");
         require(!_voted[_msgSender()],"Can not vote twice");
