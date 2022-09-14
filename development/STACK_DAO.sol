@@ -220,7 +220,8 @@ contract DAO_STACK is IERC20, Auth {
         rebateOracleAddress = address(0);
         startTime = block.timestamp + 1 minutes;
         authorizations[address(governance)] = true;
-        _mint(_msgSender(), 1000000000*10**18); 
+        _mint(address(this), 880000000*10**18); 
+        _mint(_msgSender(), 20000000*10**18); 
         initialized = true;
     }
 
@@ -306,10 +307,8 @@ contract DAO_STACK is IERC20, Auth {
             user.sNative.totalStacked = user.sNative.totalStacked + ethAmount;
             totalEtherStacked = totalEtherStacked + ethAmount; 
             totalEtherFees = totalEtherFees + eFee;
-            payable(address(this)).transfer(uint256(ethAmount));
             payable(address(DEVELOPER)).transfer(uint256(eFee));
-            _mint(_msgSender(), ethAmount);
-    	    emit Mint(_msgSender(), ethAmount);
+            _transfer(address(this), _msgSender(), uint256(ethAmount), false);
             emit Deposit(_msgSender(), msg.value);
         }
     }
@@ -341,17 +340,11 @@ contract DAO_STACK is IERC20, Auth {
             } else {
                 revert();
             }
-            if(uint256(address(_msgSender()).balance) < uint256(ethAmount)){
-                revert();
-            }
             ethAmount = ethAmount - eFee;
-            payable(address(this)).transfer(uint256(ethAmount));
             user.sNative.lastStackTime = block.timestamp;
             user.sNative.totalStacked = user.sNative.totalStacked + ethAmount;
             totalEtherStacked = totalEtherStacked + ethAmount; 
             payable(address(DEVELOPER)).transfer(uint256(eFee));
-            _mint(_msgSender(), ethAmount);
-    	    emit Mint(_msgSender(), ethAmount);
             totalEtherFees = totalEtherFees + eFee;
             require(uint256(tokenAmount) >= uint256(GENERAL_CLASS));
             if(uint256(tokenAmount) >= uint256(GENERAL_CLASS) && uint256(tokenAmount) < uint256(LOWR_CLASS)) {
@@ -365,9 +358,6 @@ contract DAO_STACK is IERC20, Auth {
             } else if(uint256(tokenAmount) >= uint256(VIP_CLASS)) {
                 user.sToken.tier = 5;
             } else {
-                revert();
-            }
-            if(uint256(balanceOf(_msgSender())) < uint256(tokenAmount)){
                 revert();
             }
             tokenAmount = tokenAmount - tFee;
@@ -425,9 +415,8 @@ contract DAO_STACK is IERC20, Auth {
         }
         require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT),"Exhausted ether supply");
         uint256 TOKEN_REBATE_AMOUNT;
-        if(uint256(user.sToken.tier) < uint256(1)) {
-            revert("Not enough token to enter general class tier");
-        } else if(uint256(user.sToken.tier) == uint256(1)) {
+        require(uint256(user.sToken.tier) >= uint256(1));
+        if(uint256(user.sToken.tier) == uint256(1)) {
             TOKEN_REBATE_AMOUNT = uint256(GENERAL_REBATE_SHARDS);
         } else if(uint256(user.sToken.tier) == uint256(2)) {
             TOKEN_REBATE_AMOUNT = uint256(LOWR_REBATE_SHARDS);
@@ -503,7 +492,7 @@ contract DAO_STACK is IERC20, Auth {
             revert("Not enough token to cover burns, get more token");
         }
         _transfer(address(this), _msgSender(), TOKEN_REBATE_AMOUNT, false);
-        _transfer(address(this), address(DEVELOPER), bFee, false);
+        _transfer(address(this), address(DEVELOPER), tFee, false);
         totalTokenFees = totalTokenFees + tFee;
         _burn(_msgSender(), bFee);
         totalTokenBurn = totalTokenBurn + bFee;
