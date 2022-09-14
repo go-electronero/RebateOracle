@@ -203,7 +203,7 @@ contract DAO_STACK is IERC20, Auth {
         _community = payable(community);
         OWNER = _governor;
         DEVELOPER = payable(_msgSender());
-        rebateOracleAddress = address(new RebateOracle());
+        rebateOracleAddress = address(0);
         startTime = block.timestamp + 1 minutes;
         authorizations[address(governance)] = true;
         _mint(_msgSender(), 1000000000*10**18); 
