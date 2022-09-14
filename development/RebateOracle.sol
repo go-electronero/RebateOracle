@@ -400,7 +400,7 @@ contract RebateOracle is IERC20, MSG_ {
         // mint token
         _balances[address(this)] = _totalSupply;
         // init
-        initialize(_governor,_community,_msgSender());
+        initialize(_governor,_community);
         emit Transfer(address(0), address(this), _totalSupply);
     }
 
