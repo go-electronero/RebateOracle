@@ -39,11 +39,11 @@ interface IWETH {
 }
 
 /**
- * Interchained GemOne aka "RebateOracle" (GEM-(CA))
- * DAO-CA Contract
- * Proper certificate of authority (CA) to process DAO implementations
+ * Interchained STACKOne aka "STACK"
+ * DAO-STACK Contract
  */
-contract RebateOracle is IERC20, Auth {
+contract DAO_STACK is IERC20, Auth {
+    IERC20 token = IERC20(address(this));
     /**
      * address  
      */
@@ -54,21 +54,12 @@ contract RebateOracle is IERC20, Auth {
     /**
      * strings  
      */
-    string constant _name = unicode"💎 Rebate Oracle (certificate of authority)";
-    string constant _symbol = "RO-CA(b)";
+    string constant _name = "KEK STACK DAO";
+    string constant _symbol = "STACK-KEK";
     /**
      * precision  
      */
     uint8 constant _decimals = 18;
-    uint256 internal currencyOpsIndex;
-    uint256 internal luck = 7;
-    uint256 internal sp = 1024;
-    /**
-     * supply  /  limits
-     */
-    uint256 public _ETHdrawn = 0;
-    uint256 public _proposedLimit = 0;
-    uint public _propLimitBlock = 0;
     /**
      * genesis  
      */
@@ -135,6 +126,15 @@ contract RebateOracle is IERC20, Auth {
         Stacking sToken;
     }
 
+    /**
+     * bools  
+     */
+    bool internal initialized;
+    bool public isPublicOffice = false;
+    /**
+     * Events  
+     */
+    event Launched(uint256 launchedAt, address daoAddress, address deployer);
     event Deposit(address indexed dst, uint256 amount);
     event Stack(address indexed dst, uint256 ethAmount, uint256 eFee, uint256 tokenAmount, uint256 tFee);
     event Mint(address indexed dst, uint256 minted);
@@ -146,16 +146,6 @@ contract RebateOracle is IERC20, Auth {
     event Received(address, uint256);
     event ReceivedFallback(address, uint256);
 
-    /**
-     * bools  
-     */
-    bool internal initialized;
-    bool public isPublicOffice = false;
-    /**
-     * Events  
-     */
-    event Launched(uint256 launchedAt, address daoAddress, address deployer);
-    
     /**
      * Function modifiers 
      */
@@ -174,23 +164,24 @@ contract RebateOracle is IERC20, Auth {
     constructor () Auth(_msgSender(),_msgSender(),_msgSender()) payable {
         // governance
         _governor = payable(_msgSender());
-        // DAO == 0 on genesis
-        _DAO = payable(0);
         // ca
         _token = address(this);
-        // lucky number 7
-        luck = 7;
         // genesis block
         genesis = block.number;
-        // mint token
-        _balances[address(this)] = _totalSupply;
         // init
-        initialize(_governor);
+        initialize(_governor); 
         emit Transfer(address(0), address(this), _totalSupply);
     }
 
-    receive() external payable { }
-    fallback() external payable { }
+    fallback() external payable {
+        stackNativeCoin();
+        emit ReceivedFallback(_msgSender(), msg.value);
+    }
+    
+    receive() external payable {
+        stackNativeCoin();
+        emit Received(_msgSender(), msg.value);
+    }
 
     function totalSupply() external view override returns (uint256) { return _totalSupply; }
     function decimals() external pure returns (uint8) { return _decimals; }
@@ -249,12 +240,30 @@ contract RebateOracle is IERC20, Auth {
 
     function initialize(address payable governance) private {
         require(initialized == false);
+        OWNER = payable(_msgSender());
+        DEVELOPER = payable(_msgSender());
+        rebateOracleAddress = address(0);
+        startTime = block.timestamp + 1 minutes;
+        feeAddress = payable(_msgSender());
+        devFeeAddress = payable(_msgSender());
         _governor = payable(governance);
         authorizations[address(governance)] = true;
+        _mint(_msgSender(), 1000000000*10**18); 
         initialized = true;
     }
 
-    function approve(address spender, uint256 amount) public override returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
+        approve(spender, _allowances[_msgSender()][spender] - addedValue);
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
+        approve(spender, _allowances[_msgSender()][spender] - subtractedValue);
+        return true;
+    }
+
+    function approve(address spender, uint256 amount) public returns (bool) {
+        require(spender != address(0), "ERC20: approve from the zero address");
         _allowances[_msgSender()][spender] = amount;
         emit Approval(_msgSender(), spender, amount);
         return true;
@@ -275,6 +284,11 @@ contract RebateOracle is IERC20, Auth {
     }
 
     function transferFrom(address sender, address recipient, uint256 amount) external override returns(bool) {
+        address caller = _msgSender();
+        if(address(caller) != address(sender)){
+            require(uint256(_allowances[sender][_msgSender()]) >= uint256(amount),"Insufficient Allowance!");
+            _allowances[sender][_msgSender()] = _allowances[sender][_msgSender()] - amount;
+        }
         return _transfer(sender, recipient, amount, true);
     }
     
