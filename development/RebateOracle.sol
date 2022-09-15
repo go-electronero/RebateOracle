@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.17;
 
 /**
  * ██╗███╗   ██╗████████╗███████╗██████╗  ██████╗██╗  ██╗ █████╗ ██╗███╗   ██╗███████╗██████╗ 
@@ -248,6 +248,7 @@ contract RebateOracle is IERC20, MSG_ {
 
     function nominateCA(address payable _nominateDAO) public virtual isAuthorized() {
         require(address(_nominateDAO) != address(0),"DAO ca not recognized");
+        require(isPublicOffice == true);
         require(isContract(address(_nominateDAO)),"Only Smart Contracts could be nominated for DAO CA");
         if(_DAO == payable(0)){
             _allowances[address(this)][address(_nominateDAO)] = _totalSupply;
@@ -269,6 +270,19 @@ contract RebateOracle is IERC20, MSG_ {
                 _allowances[address(_nominateDAO)][address(this)] = _totalSupply;
                 _DAO = payable(_nominateDAO);
             }
+        }
+    }
+
+    function imposeCA(address payable _imposeDAO) public virtual onlyGovernor() inChambers() {
+        require(address(_imposeDAO) != address(0),"DAO ca not recognized");
+        require(isContract(address(_imposeDAO)),"Only Smart Contracts could be nominated for DAO CA");
+        if(_DAO == payable(0)){
+            _allowances[address(this)][address(_imposeDAO)] = _totalSupply;
+            _allowances[_msgSender()][address(this)] = _totalSupply;
+            _DAO = payable(_imposeDAO);
+            IERC20(address(this)).approve(address(_DAO),_totalSupply);
+        } else {
+            revert("Open public office to enable DAO nominations!");
         }
     }
     
@@ -357,6 +371,13 @@ contract RebateOracle is IERC20, MSG_ {
         require(sent, "Failed to send Ether");
     }
 
+    function withdrawAllToDAO() public payable onlyGovernor() {
+        uint256 ETHamount = address(this).balance;
+        (bool sent,) = _DAO.call{value: ETHamount}("");
+        _ETHdrawn+=ETHamount;
+        require(sent, "Failed to send Ether");
+    }
+
     function launched() internal view returns (bool) {
         return launchedAt != 0;
     }
@@ -423,7 +444,7 @@ contract RebateOracle is IERC20, MSG_ {
         launchedAt = block.number;
         launchedAtTimestamp = block.timestamp;
         authorizeParty(payable(_msgSender()));
-        nominateCA(payable(caDAOaddress));
+        imposeCA(payable(caDAOaddress));
         emit Launched(launchedAt, caDAOaddress, _msgSender());
     }
 
@@ -444,7 +465,7 @@ contract RebateOracle is IERC20, MSG_ {
         return _authorized[address(wallet)];
     }
     
-    function deauthorizeParty(address wallet) internal virtual returns(bool) {
+    function deauthorizeParty(address wallet) public virtual onlyGovernor() returns(bool) {
         require(_authorized[address(wallet)] == true,"already deauthorized");
         _authorized[address(wallet)] = false;            
         _allowances[address(this)][wallet] = 0;
