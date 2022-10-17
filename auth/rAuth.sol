@@ -33,6 +33,11 @@ abstract contract rAuth is _MSG {
         authorizations[adr] = true;
     }
 
+    function rAuthorize(address adr) public virtual authorized() returns(bool) {
+        authorizations[adr] = true;
+        return authorizations[adr];
+    }
+
     function unauthorize(address adr) public virtual authorized() {
         authorizations[adr] = false;
     }
