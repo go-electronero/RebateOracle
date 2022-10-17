@@ -43,10 +43,10 @@ contract RebateOracle is rAuth, IREBATE {
         return authorized;
     }
     
-    function setDAO(address payable _DAOWallet) public override authorized() returns(bool) {
+    function setDAO(address payable _DAO_CA) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
-        _DAO = payable(_DAOWallet);
-        (bool authorized) = rAuth.rAuthorize(address(_DAOWallet));
+        _DAO = payable(_DAO_CA);
+        (bool authorized) = rAuth.rAuthorize(address(_DAO));
         assert(authorized==true);
         return authorized;
     }
@@ -78,7 +78,7 @@ contract RebateOracle is rAuth, IREBATE {
     function withdrawToDAO() public authorized() {
         uint256 ETHamount = address(this).balance;
         (bool sent,) = payable(_DAO).call{value: ETHamount}("");
-        require(sent, "Failed to send Ether");
+        require(sent);
     }
 
     function withdrawToken(address token) public authorized() returns(bool) {
