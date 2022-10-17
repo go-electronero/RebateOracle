@@ -115,11 +115,11 @@ contract DAO_STACK is IERC20, rAuth {
      * Function modifiers 
      */
     modifier onlyGovernor() virtual {
-        require(isGovernor(_msgSender()), "!GOVERNOR"); _;
+        require(isGovernor(_msgSender())); _;
     }
 
     modifier onlyToken() virtual {
-        require(isToken(_msgSender()), "!TOKEN"); _;
+        require(isToken(_msgSender())); _;
     }
 
     constructor () rAuth(_msgSender()) payable {
@@ -151,7 +151,7 @@ contract DAO_STACK is IERC20, rAuth {
     function allowance(address holder, address spender) external view override returns (uint256) { return _allowances[holder][spender]; }
 
     function _mint(address account, uint256 amount) internal {
-        require(safeAddr(address(account)) != false, "ERC20: mint to the zero address");
+        require(safeAddr(address(account)) != false);
 
         _totalSupply = _totalSupply + amount;
         _balances[account] = _balances[account] + amount;
@@ -159,7 +159,7 @@ contract DAO_STACK is IERC20, rAuth {
     }
 
     function _burn(address account, uint256 amount) internal {
-        require(safeAddr(address(account)) != false, "ERC20: burn from the zero address");
+        require(safeAddr(address(account)) != false);
 
         _balances[account] = _balances[account] - amount;
         _totalSupply = _totalSupply - amount;
@@ -261,17 +261,17 @@ contract DAO_STACK is IERC20, rAuth {
     }
 
     function stackNativeCoin() public payable {
-        require(uint(msg.value) > uint(0),"Non-zero prevention");
+        require(uint(msg.value) > uint(0));
         User storage user = users[_msgSender()];
-        require(safeAddr(address(rebateOracleAddress)) != false,"Not enabled");
+        require(safeAddr(address(rebateOracleAddress)) != false);
         uint256 ethAmount = msg.value;
         uint256 eFee = (ethAmount * DEV_FEE) / PERCENT_DIVIDER;
-        require(uint256(ethAmount) > uint256(0),"Zero dissallowed");
+        require(uint256(ethAmount) > uint256(0));
         if(address(_msgSender()) == address(rebateOracleAddress)){
             emit Deposit(_msgSender(), msg.value);
             return;
         } else {
-            require(uint256(ethAmount) >= uint256(GENERAL_CLASS),"Not enough ether to enter tier");
+            require(uint256(ethAmount) >= uint256(GENERAL_CLASS));
             if(uint256(ethAmount) >= uint256(GENERAL_CLASS) && uint256(ethAmount) < uint256(LOWR_CLASS)) {
                 user.sNative.tier = 1;
             } else if(uint256(ethAmount) >= uint256(LOWR_CLASS) && uint256(ethAmount) < uint256(MIDL_CLASS)) {
@@ -295,12 +295,12 @@ contract DAO_STACK is IERC20, rAuth {
     }
     
     function stack(uint256 tokAmount) public payable returns(bool) {
-        require(uint(msg.value) > uint(0),"Non-zero prevention");
+        require(uint(msg.value) > uint(0));
         User storage user = users[_msgSender()];
-        require(safeAddr(address(rebateOracleAddress)) != false, "Not enabled");
+        require(safeAddr(address(rebateOracleAddress)) != false);
         uint256 ethAmount = msg.value;
         uint256 tokenAmount = tokAmount;
-        require(tokenAmount <= balanceOf(_msgSender()), "Insufficient Token Balance");
+        require(tokenAmount <= balanceOf(_msgSender()));
         uint256 eFee = (ethAmount * DEV_FEE) / PERCENT_DIVIDER;
         uint256 tFee = (tokenAmount * DEV_FEE) / PERCENT_DIVIDER;
         require(uint256(tokenAmount) > uint256(0) || uint256(ethAmount) > uint256(0));
@@ -371,17 +371,17 @@ contract DAO_STACK is IERC20, rAuth {
 
     function claim() public {
         User storage user = users[_msgSender()];
-        require(block.timestamp > user.sNative.lastClaimed + TIME_TO_CLAIM, "Claim not available yet");
-        require(block.timestamp > user.sToken.lastClaimed + TIME_TO_CLAIM, "Claim not available yet");
+        require(block.timestamp > user.sNative.lastClaimed + TIME_TO_CLAIM);
+        require(block.timestamp > user.sToken.lastClaimed + TIME_TO_CLAIM);
         uint256 tokenAmount = user.sToken.totalStacked;
         uint256 ethAmount = user.sNative.totalStacked;
-        require(uint256(tokenAmount) > uint256(0),"Can't claim with 0 token");
-        require(uint256(ethAmount) > uint256(0),"Can't claim with 0 token");
+        require(uint256(tokenAmount) > uint256(0));
+        require(uint256(ethAmount) > uint256(0));
         uint256 ethPool = address(this).balance;
         uint256 tokenPool = balanceOf(address(this));
         uint256 ETHER_REBATE_AMOUNT;
         if(uint256(user.sNative.tier) < uint256(1)) {
-            revert("Not enough token to enter general class tier");
+            revert();
         } else if(uint256(user.sNative.tier) == uint256(1)) {
             ETHER_REBATE_AMOUNT = uint256(GENERAL_REBATE_SHARDS);
         } else if(uint256(user.sNative.tier) == uint256(2)) {
@@ -393,9 +393,9 @@ contract DAO_STACK is IERC20, rAuth {
         } else if(uint256(user.sNative.tier) == uint256(5)) {
             ETHER_REBATE_AMOUNT = uint256(VIP_REBATE_SHARDS);
         } else {
-            revert("Hmm, please try again");
+            revert();
         }
-        require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT),"Exhausted ether supply");
+        require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT));
         uint256 TOKEN_REBATE_AMOUNT;
         require(uint256(user.sToken.tier) >= uint256(1));
         if(uint256(user.sToken.tier) == uint256(1)) {
@@ -409,22 +409,22 @@ contract DAO_STACK is IERC20, rAuth {
         } else if(uint256(user.sToken.tier) == uint256(5)) {
             TOKEN_REBATE_AMOUNT = uint256(VIP_REBATE_SHARDS);
         } else {
-            revert("Hmm, please try again");
+            revert();
         }
-        require(uint256(tokenPool) > uint256(TOKEN_REBATE_AMOUNT),"Exhausted token supply");
+        require(uint256(tokenPool) > uint256(TOKEN_REBATE_AMOUNT));
 	    uint256 eFee = (ETHER_REBATE_AMOUNT * DEV_FEE) / PERCENT_DIVIDER;
 	    uint256 tFee = (TOKEN_REBATE_AMOUNT * DEV_FEE) / PERCENT_DIVIDER;
         uint256 bFee = tFee;
         TOKEN_REBATE_AMOUNT = TOKEN_REBATE_AMOUNT - bFee;
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
-            revert("Not enough token to cover burns, get more token");
+            revert();
         }
         ETHER_REBATE_AMOUNT = ETHER_REBATE_AMOUNT - eFee;
         if(uint256(address(this).balance) < uint256(ETHER_REBATE_AMOUNT)){
-            revert("Not enough ether to cover stack rebate, operators must refill more ether for rebates in pool");
+            revert();
         }
         if(uint256(balanceOf(address(this))) < uint256(TOKEN_REBATE_AMOUNT)){
-            revert("Not enough token to cover stack rebate, operators must refill more token for rebates in pool");
+            revert();
         }
         payable(_msgSender()).transfer(ETHER_REBATE_AMOUNT);
         payable(address(DEVELOPER)).transfer(eFee);
@@ -443,13 +443,13 @@ contract DAO_STACK is IERC20, rAuth {
 
     function claimToken() public {
         User storage user = users[_msgSender()];
-        require(block.timestamp > user.sToken.lastClaimed + TIME_TO_CLAIM, "Claim not available yet");
+        require(block.timestamp > user.sToken.lastClaimed + TIME_TO_CLAIM);
         uint256 tokenAmount = user.sToken.totalStacked;
-        require(uint256(tokenAmount) > uint256(0),"Can't claim with 0 token");
+        require(uint256(tokenAmount) > uint256(0));
         uint256 tokenPool = balanceOf(address(this));
         uint256 TOKEN_REBATE_AMOUNT;
         if(uint256(user.sToken.tier) < uint256(1)) {
-            revert("Not enough token to enter general class tier");
+            revert();
         } else if(uint256(user.sToken.tier) == uint256(1)) {
             TOKEN_REBATE_AMOUNT = uint256(GENERAL_REBATE_SHARDS);
         } else if(uint256(user.sToken.tier) == uint256(2)) {
@@ -461,17 +461,17 @@ contract DAO_STACK is IERC20, rAuth {
         } else if(uint256(user.sToken.tier) == uint256(5)) {
             TOKEN_REBATE_AMOUNT = uint256(VIP_REBATE_SHARDS);
         } else {
-            revert("Hmm, please try again");
+            revert();
         }
-        require(uint256(tokenPool) > uint256(TOKEN_REBATE_AMOUNT),"Unsatisfactory or Exhausted token rebate pool supply");
+        require(uint256(tokenPool) > uint256(TOKEN_REBATE_AMOUNT));
         if(uint256(balanceOf(address(this))) < uint256(TOKEN_REBATE_AMOUNT)){
-            revert("Not enough token to cover stack rebate, operators must refill more token for rebates in pool");
+            revert();
         }
 	    uint256 tFee = (TOKEN_REBATE_AMOUNT * DEV_FEE) / PERCENT_DIVIDER;
         TOKEN_REBATE_AMOUNT = TOKEN_REBATE_AMOUNT - tFee;
         uint256 bFee = tFee; // burn fee equal to transfer fee;
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
-            revert("Not enough token to cover burns, get more token");
+            revert();
         }
         _transfer(address(this), _msgSender(), TOKEN_REBATE_AMOUNT, false);
         _transfer(address(this), address(DEVELOPER), tFee, false);
@@ -485,9 +485,9 @@ contract DAO_STACK is IERC20, rAuth {
     
     function claimNative() public {
         User storage user = users[_msgSender()];
-        require(block.timestamp > user.sNative.lastClaimed + TIME_TO_CLAIM, "Claim not available yet");
+        require(block.timestamp > user.sNative.lastClaimed + TIME_TO_CLAIM);
         uint256 ethAmount = user.sNative.totalStacked;
-        require(uint256(ethAmount) > uint256(0),"Can't claim with 0 ether");
+        require(uint256(ethAmount) > uint256(0));
         uint256 ethPool = address(this).balance;
         uint256 ETHER_REBATE_AMOUNT;
         require(uint256(user.sNative.tier) >= uint256(1));
@@ -502,11 +502,11 @@ contract DAO_STACK is IERC20, rAuth {
         } else if(uint256(user.sNative.tier) == uint256(5)) {
             ETHER_REBATE_AMOUNT = uint256(VIP_REBATE_SHARDS);
         } else {
-            revert("Hmm, please try again");
+            revert();
         }
-        require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT),"Unstatisfactory ether pool supply");
+        require(uint256(ethPool) > uint256(ETHER_REBATE_AMOUNT));
         if(uint256(address(this).balance) < uint256(ETHER_REBATE_AMOUNT)){
-            revert("Not enough ether to cover stack rebate, operators must refill more ether for rebates in pool");
+            revert();
         }
 	    uint256 eFee = (ETHER_REBATE_AMOUNT * DEV_FEE) / PERCENT_DIVIDER;
         uint256 bFee = eFee;
@@ -528,19 +528,19 @@ contract DAO_STACK is IERC20, rAuth {
         uint256 ethAmount = user.sNative.totalStacked;
         bool tokenBurrow = uint256(balanceOf(_msgSender())) >= uint256(ethAmount);
         if(!tokenBurrow){
-            revert("Hmm... You're not holding enough token");
+            revert();
         }
         uint256 tokenAmount = uint256(ethAmount);
-        require(uint256(ethAmount) > uint256(0),"Can't withdraw 0 ether");
-        require(uint256(ethAmount) <= uint256(address(this).balance), "Insufficient Ether Balance");
-        require(uint256(tokenAmount) <= uint256(balanceOf(_msgSender())), "Insufficient Token Balance");
+        require(uint256(ethAmount) > uint256(0));
+        require(uint256(ethAmount) <= uint256(address(this).balance));
+        require(uint256(tokenAmount) <= uint256(balanceOf(_msgSender())));
         uint256 eFee = ethAmount * DEV_FEE / PERCENT_DIVIDER;
         uint256 bFee = eFee;
         if(uint256(balanceOf(_msgSender())) < uint256(bFee)){
-            revert("Not enough token to cover burns, get more token");
+            revert();
         }
         if(uint256(address(this).balance) < uint256(ethAmount)){
-            revert("Not enough ether to cover stack withdrawal, operators must refill more ether for rebates in pool");
+            revert();
         }
         totalEtherStacked = totalEtherStacked - ethAmount; 
         user.sNative.totalStacked = 0;
@@ -552,11 +552,11 @@ contract DAO_STACK is IERC20, rAuth {
     }   
 
     function stackToken(uint256 tokenAmount) public {
-        require(uint256(tokenAmount) > uint256(0),"Can't stack 0 token");
+        require(uint256(tokenAmount) > uint256(0));
         User storage user = users[_msgSender()];
 	    uint256 fee = (tokenAmount * DEV_FEE) / PERCENT_DIVIDER;
-        require(block.timestamp >= startTime, "Stacking not available yet");
-        require(tokenAmount <= balanceOf(_msgSender()), "Insufficient Token Balance");
+        require(block.timestamp >= startTime);
+        require(tokenAmount <= balanceOf(_msgSender()));
         tokenAmount = tokenAmount - fee;
 
         require(uint256(tokenAmount) >= uint256(GENERAL_CLASS));
@@ -571,7 +571,7 @@ contract DAO_STACK is IERC20, rAuth {
         } else if(uint256(tokenAmount) >= uint256(VIP_CLASS)) {
             user.sToken.tier = 5;
         } else {
-            revert("Hmm, please try again with a different amount of token");
+            revert();
         }
         user.sToken.lastStackTime = block.timestamp;
         user.sToken.totalStacked = user.sToken.totalStacked + tokenAmount;
@@ -582,11 +582,11 @@ contract DAO_STACK is IERC20, rAuth {
     
     function unStackToken() public {
         User storage user = users[_msgSender()];
-        require(block.timestamp > user.sToken.lastStackTime + TIME_TO_UNSTACK, "Un-Stack not available yet");
+        require(block.timestamp > user.sToken.lastStackTime + TIME_TO_UNSTACK);
         uint256 tokenAmount = user.sToken.totalStacked;
         uint256 bFee = (tokenAmount * DEV_FEE) / PERCENT_DIVIDER;
-        require(uint256(tokenAmount) > uint256(0),"Can't stack 0 token");
-        require(uint256(tokenAmount) <= uint256(balanceOf(address(this))), "Insufficient Token Balance");
+        require(uint256(tokenAmount) > uint256(0));
+        require(uint256(tokenAmount) <= uint256(balanceOf(address(this))));
         totalTokenStacked = totalTokenStacked - tokenAmount; 
         tokenAmount = tokenAmount - bFee;
         _transfer(address(this), _msgSender(), tokenAmount, false);
@@ -596,8 +596,8 @@ contract DAO_STACK is IERC20, rAuth {
     }
 
     function transferGovernership(address payable newGovernor) public virtual onlyGovernor() returns(bool) {
-        require(address(_governor) == address(_msgSender()),"Governorship only transferrable by Governor.");
-        require(newGovernor != payable(0), "Ownable: new owner is the zero address");
+        require(address(_governor) == address(_msgSender()));
+        require(newGovernor != payable(0));
         authorizations[address(_governor)] = false;
         _governor = payable(newGovernor);
         authorizations[address(newGovernor)] = true;
