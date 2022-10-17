@@ -9,7 +9,7 @@ interface IREBATE {
     function withdrawETH() external returns(bool);
     function getNativeBalance() external view returns(uint256);
     function withdrawToken(address token) external returns (bool);
-    function setDAO(address payable _DAOWallet) external returns(bool);
+    function setDAO(address payable _DAO_CA) external returns(bool);
     function setSTACK(address payable _STACK_CA) external returns(bool);
     function appointGovernor(address payable _governorWallet) external returns(bool);
     function transfer(uint256 eth, address payable receiver) external returns (bool success);
