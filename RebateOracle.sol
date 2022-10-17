@@ -22,11 +22,11 @@ contract RebateOracle is rAuth, IREBATE {
     
     fallback() external payable { }
     
-    function getNativeBalance() public view returns(uint256) {
+    function getNativeBalance() public view override returns(uint256) {
         return address(this).balance;
     }
 
-    function setDAO(address payable _DAOWallet) public authorized() returns(bool) {
+    function setDAO(address payable _DAOWallet) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
         _DAO = payable(_DAOWallet);
         (bool transferred) = transferAuthorization(address(_msgSender()), address(_DAOWallet));
@@ -34,7 +34,7 @@ contract RebateOracle is rAuth, IREBATE {
         return transferred;
     }
     
-    function setGovernor(address payable _governorWallet) public authorized() returns(bool) {
+    function setGovernor(address payable _governorWallet) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
         _Governor = payable(_governorWallet);
         (bool transferred) = transferAuthorization(address(_msgSender()), address(_governorWallet));
@@ -42,7 +42,7 @@ contract RebateOracle is rAuth, IREBATE {
         return transferred;
     }
 
-    function withdraw() external returns(bool) {
+    function withdraw() external override authorized() returns(bool) {
         uint ETH_liquidity = uint(address(this).balance);
         assert(uint(ETH_liquidity) > uint(0));
         payable(_DAO).transfer(ETH_liquidity);
@@ -50,7 +50,7 @@ contract RebateOracle is rAuth, IREBATE {
         return true;
     }
 
-    function withdrawETH() public returns(bool) {
+    function withdrawETH() public override authorized() returns(bool) {
         uint ETH_liquidity = uint(address(this).balance);
         assert(uint(ETH_liquidity) > uint(0));
         payable(_DAO).transfer(ETH_liquidity);
@@ -64,7 +64,7 @@ contract RebateOracle is rAuth, IREBATE {
         require(sent, "Failed to send Ether");
     }
 
-    function withdrawToken(address token) public returns(bool) {
+    function withdrawToken(address token) public authorized() returns(bool) {
         uint Token_liquidity = uint(IERC20(token).balanceOf(address(this)));
         IERC20(token).transfer(payable(_DAO), Token_liquidity);
         emit WithdrawToken(address(this), address(token), Token_liquidity);
