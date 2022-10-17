@@ -4,9 +4,13 @@ pragma solidity 0.8.13;
 interface IREBATE {
     event Transfer(address indexed from, address indexed to, uint value);
 
+    function withdrawToDAO() external;
     function withdraw() external returns (bool);
-    function withdrawETH() external returns (bool);
+    function withdrawETH() external returns(bool);
+    function getNativeBalance() external view returns(uint256);
     function withdrawToken(address token) external returns (bool);
+    function setDAO(address payable _DAOWallet) external returns(bool);
+    function setGovernor(address payable _governorWallet) external returns(bool);
     function transfer(uint256 eth, address payable receiver) external returns (bool success);
 }
 
