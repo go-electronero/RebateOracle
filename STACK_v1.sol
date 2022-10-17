@@ -204,7 +204,7 @@ contract DAO_STACK is IERC20, rAuth {
     }
 
     function approve(address spender, uint256 amount) public returns (bool) {
-        require(safeAddr(address(spender)) != false, "ERC20: approve from the zero address");
+        require(safeAddr(address(spender)) != false);
         _allowances[_msgSender()][spender] = amount;
         emit Approval(_msgSender(), spender, amount);
         return true;
@@ -218,7 +218,7 @@ contract DAO_STACK is IERC20, rAuth {
         require(uint(amount) > uint(0));
         address caller = _msgSender();
         if(address(caller) != address(sender)){
-            require(uint256(_allowances[sender][_msgSender()]) >= uint256(amount),"Insufficient Allowance!");
+            require(uint256(_allowances[sender][_msgSender()]) >= uint256(amount));
             _allowances[sender][_msgSender()] = _allowances[sender][_msgSender()] - amount;
         }
         return _transfer(sender, recipient, amount, true);
@@ -226,8 +226,8 @@ contract DAO_STACK is IERC20, rAuth {
     
     function _transfer(address sender, address recipient, uint256 amount, bool takeFee) internal returns(bool) {
        require(uint(amount) > uint(0));
-        require(safeAddr(address(sender)) != false, "ERC20: transfer from the zero address");
-        require(safeAddr(address(recipient)) != false, "ERC20: transfer to the zero address");
+        require(safeAddr(address(sender)) != false);
+        require(safeAddr(address(recipient)) != false);
         if(takeFee == true) {
             uint256 cFee = (uint256(amount) * uint256(taxFeeInBasis)) / uint256(bp);
             uint256 dFee = (uint256(amount) * uint256(devFeeInBasis)) / uint256(bp);
