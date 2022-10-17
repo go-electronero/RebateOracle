@@ -4,327 +4,13 @@
 // ▄█ ▀█▄▐▀▀▪▄▐█ ▌▐▌▐█·▐█· ▐█▌▄█▀▀█  ▄█▀▄ 
 // ▐█▄▪▐█▐█▄▄▌██ ██▌▐█▌██. ██ ▐█ ▪▐▌▐█▌.▐▌
 // ·▀▀▀▀  ▀▀▀ ▀▀  █▪▀▀▀▀▀▀▀▀•  ▀  ▀  ▀█▄▀▪
-pragma solidity 0.8.4;
-/**
- * @dev Collection of functions related to the address type
- */
-library Address {
-    /**
-     * @dev Returns true if `account` is a contract.
-     *
-     * [IMPORTANT]
-     * ====
-     * It is unsafe to assume that an address for which this function returns
-     * false is an externally-owned account (EOA) and not a contract.
-     *
-     * Among others, `isContract` will return false for the following
-     * types of addresses:
-     *
-     *  - an externally-owned account
-     *  - a contract in construction
-     *  - an address where a contract will be created
-     *  - an address where a contract lived, but was destroyed
-     * ====
-     */
-    function isContract(address account) internal view returns (bool) {
-        // According to EIP-1052, 0x0 is the value returned for not-yet created accounts
-        // and 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470 is returned
-        // for accounts without code, i.e. `keccak256('')`
-        bytes32 codehash;
-        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-        // solhint-disable-next-line no-inline-assembly
-        assembly { codehash := extcodehash(account) }
-        return (codehash != accountHash && codehash != 0x0);
-    }
+pragma solidity 0.8.13;
 
-    /**
-     * @dev Replacement for Solidity's `transfer`: sends `amount` wei to
-     * `recipient`, forwarding all available gas and reverting on errors.
-     *
-     * https://eips.ethereum.org/EIPS/eip-1884[EIP1884] increases the gas cost
-     * of certain opcodes, possibly making contracts go over the 2300 gas limit
-     * imposed by `transfer`, making them unable to receive funds via
-     * `transfer`. {sendValue} removes this limitation.
-     *
-     * https://diligence.consensys.net/posts/2019/09/stop-using-soliditys-transfer-now/[Learn more].
-     *
-     * IMPORTANT: because control is transferred to `recipient`, care must be
-     * taken to not create reentrancy vulnerabilities. Consider using
-     * {ReentrancyGuard} or the
-     * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
-     */
-    function sendValue(address payable recipient, uint256 amount) internal {
-        require(address(this).balance >= amount, "Address: insufficient balance");
+import "./auth/rAuth.sol";
 
-        // solhint-disable-next-line avoid-low-level-calls, avoid-call-value
-        (bool success, ) = recipient.call{ value: amount }("");
-        require(success, "Address: unable to send value, recipient may have reverted");
-    }
+contract ERC1030 is IERC20, rAuth {
 
-    /**
-     * @dev Performs a Solidity function call using a low level `call`. A
-     * plain`call` is an unsafe replacement for a function call: use this
-     * function instead.
-     *
-     * If `target` reverts with a revert reason, it is bubbled up by this
-     * function (like regular Solidity function calls).
-     *
-     * Returns the raw returned data. To convert to the expected return value,
-     * use https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].
-     *
-     * Requirements:
-     *
-     * - `target` must be a contract.
-     * - calling `target` with `data` must not revert.
-     *
-     * _Available since v3.1._
-     */
-    function functionCall(address target, bytes memory data) internal returns (bytes memory) {
-      return functionCall(target, data, "Address: low-level call failed");
-    }
-
-    /**
-     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`], but with
-     * `errorMessage` as a fallback revert reason when `target` reverts.
-     *
-     * _Available since v3.1._
-     */
-    function functionCall(address target, bytes memory data, string memory errorMessage) internal returns (bytes memory) {
-        return _functionCallWithValue(target, data, 0, errorMessage);
-    }
-
-    /**
-     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],
-     * but also transferring `value` wei to `target`.
-     *
-     * Requirements:
-     *
-     * - the calling contract must have an ETH balance of at least `value`.
-     * - the called Solidity function must be `payable`.
-     *
-     * _Available since v3.1._
-     */
-    function functionCallWithValue(address target, bytes memory data, uint256 value) internal returns (bytes memory) {
-        return functionCallWithValue(target, data, value, "Address: low-level call with value failed");
-    }
-
-    /**
-     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint256-}[`functionCallWithValue`], but
-     * with `errorMessage` as a fallback revert reason when `target` reverts.
-     *
-     * _Available since v3.1._
-     */
-    function functionCallWithValue(address target, bytes memory data, uint256 value, string memory errorMessage) internal returns (bytes memory) {
-        require(address(this).balance >= value, "Address: insufficient balance for call");
-        return _functionCallWithValue(target, data, value, errorMessage);
-    }
-
-    function _functionCallWithValue(address target, bytes memory data, uint256 weiValue, string memory errorMessage) private returns (bytes memory) {
-        require(isContract(target), "Address: call to non-contract");
-
-        // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory returndata) = target.call{ value: weiValue }(data);
-        if (success) {
-            return returndata;
-        } else {
-            // Look for revert reason and bubble it up if present
-            if (returndata.length > 0) {
-                // The easiest way to bubble the revert reason is using memory via assembly
-
-                // solhint-disable-next-line no-inline-assembly
-                assembly {
-                    let returndata_size := mload(returndata)
-                    revert(add(32, returndata), returndata_size)
-                }
-            } else {
-                revert(errorMessage);
-            }
-        }
-    }
-}
-
-library SafeMath {
-
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        if (a == 0) {
-            return 0;
-        }
-
-        uint256 c = a * b;
-        require(c / a == b, "SafeMath: multiplication overflow");
-
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b > 0, "SafeMath: division by zero");
-        uint256 c = a / b;
-
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "SafeMath: subtraction overflow");
-        uint256 c = a - b;
-
-        return c;
-    }
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
-
-        return c;
-    }
-}
-
-abstract contract Auth {
-    using Address for address;
-    address public owner;
-    mapping (address => bool) internal authorizations;
-
-    constructor(address payable _maintainer) {
-        owner = payable(0xB9F96789D98407B1b98005Ed53e8D8824D42A756);
-        authorizations[owner] = true;
-        authorizations[_maintainer] = true;
-    }
-
-    /**
-     * Function modifier to require caller to be contract owner
-     */
-    modifier onlyOwner() virtual {
-        require(isOwner(msg.sender), "!OWNER"); _;
-    }
-
-    /**
-     * Function modifier to require caller to be contract owner
-     */
-    modifier onlyZero() virtual {
-        require(isOwner(address(0)), "!ZERO"); _;
-    }
-
-    /**
-     * Function modifier to require caller to be authorized
-     */
-    modifier authorized() virtual {
-        require(isAuthorized(msg.sender), "!AUTHORIZED"); _;
-    }
-    
-    /**
-     * Function modifier to require caller to be authorized
-     */
-    modifier renounced() virtual {
-        require(isRenounced(), "!RENOUNCED"); _;
-    }
-
-    /**
-     * Authorize address. Owner only
-     */
-    function authorize(address adr) public authorized {
-        authorizations[adr] = true;
-    }
-
-    /**
-     * Remove address' authorization. Owner only
-     */
-    function unauthorize(address adr) public authorized {
-        authorizations[adr] = false;
-    }
-
-    /**
-     * Check if address is owner
-     */
-    function isOwner(address account) public view returns (bool) {
-        if(account == owner){
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
-     * Return address' authorization status
-     */
-    function isAuthorized(address adr) public view returns (bool) {
-        return authorizations[adr];
-    }
-
-    /**
-     * Return address' authorization status
-     */
-    function isRenounced() public view returns (bool) {
-        require(owner == address(0), "NOT RENOUNCED!");
-        return owner == address(0);
-    }
-
-    /**
-    * @dev Leaves the contract without owner. It will not be possible to call
-    * `onlyOwner` functions anymore. Can only be called by the current owner.
-    *
-    * NOTE: Renouncing ownership will leave the contract without an owner,
-    * thereby removing any functionality that is only available to the owner.
-    */
-    function renounceOwnership() public virtual onlyOwner {
-        require(isOwner(msg.sender), "Unauthorized!");
-        emit OwnershipTransferred(address(0));
-        authorizations[address(0)] = true;
-        authorizations[owner] = false;
-        owner = address(0);
-    }
-
-    /**
-     * Transfer ownership to new address. Caller must be owner. 
-     */
-    function transferOwnership(address payable adr) public virtual onlyOwner returns (bool) {
-        authorizations[adr] = true;
-        authorizations[owner] = false;
-        owner = payable(adr);
-        emit OwnershipTransferred(adr);
-        return true;
-    }    
-    
-    /**
-     * NEW: Take ownership if previous owner renounced.
-     */
-    function takeOwnership() public virtual {
-        require(isOwner(address(0)) || isRenounced() == true, "Unauthorized! Non-Zero address detected as this contract current owner. Contact this contract current owner to takeOwnership(). ");
-        authorizations[owner] = false;
-        owner = payable(msg.sender);
-        authorizations[owner] = true;
-        emit OwnershipTransferred(owner);
-    }
-
-    event OwnershipTransferred(address owner);
-}
-
-interface IERC1030 {
-    function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
-    function decimals() external view returns (uint8);
-    function transfer(address to, uint256 value) external returns (bool);
-    function approve(address spender, uint256 value) external returns (bool);
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
-    function totalSupply() external view returns (uint256);
-    function availableSupply() external returns (uint256);
-    function balanceOf(address who) external view returns (uint256);
-    function allowance(address owner, address spender) external view returns (uint256);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-}
-
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
-
-contract ERC1030 is Context, IERC1030, Auth {
-
-    IERC1030 token;
+    IERC20 token;
     
     mapping (address => uint256) private _balances;
     mapping (address => mapping (address => uint256)) private _allowances;
@@ -340,8 +26,8 @@ contract ERC1030 is Context, IERC1030, Auth {
     event Minted(address indexed src, uint amount);
     event Burned(address indexed src, uint amount);
 
-    constructor(string memory _nam, string memory _sym, uint8 _dec, uint256 genesis) Auth(payable(msg.sender)) {
-        token = IERC1030(address(this));
+    constructor(string memory _nam, string memory _sym, uint8 _dec, uint256 genesis) rAuth(payable(msg.sender)) {
+        token = IERC20(address(this));
         if(keccak256(abi.encodePacked(_nam)) != keccak256(abi.encodePacked(string("na")))){
             _name = _nam;
         } else {
@@ -363,23 +49,23 @@ contract ERC1030 is Context, IERC1030, Auth {
         }
     }
 
-    function name() public override view returns (string memory) {
+    function name() public view returns (string memory) {
         return _name;
     }
 
-    function symbol() public override view returns (string memory) {
+    function symbol() public view returns (string memory) {
         return _symbol;
     }
 
-    function decimals() public override view returns (uint8) {
+    function decimals() public view returns (uint8) {
         return _decimals;
     }
 
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
-    function availableSupply() public override virtual returns (uint256) {
+    function availableSupply() public virtual returns (uint256) {
         return _totalSupply;
     }    
 
@@ -403,11 +89,7 @@ contract ERC1030 is Context, IERC1030, Auth {
         return true;
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public virtual override returns (bool) {
+    function transferFrom(address from,address to,uint256 amount) public virtual override returns (bool) {
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
@@ -427,15 +109,10 @@ contract ERC1030 is Context, IERC1030, Auth {
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
         }
-
         return true;
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
+    function _transfer(address from,address to,uint256 amount) internal virtual {
         require(from != address(0), "ERC1030: transfer from the zero address");
         require(to != address(0), "ERC1030: transfer to the zero address");
 
@@ -485,43 +162,27 @@ contract ERC1030 is Context, IERC1030, Auth {
         _afterTokenTransfer(account, address(0), amount);
     }
 
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
-        require(owner != address(0), "ERC1030: approve from the zero address");
-        require(spender != address(0), "ERC1030: approve to the zero address");
+    function _approve(address owner,address spender,uint256 amount) internal virtual {
+        require(owner != address(0));
+        require(spender != address(0));
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
 
-    function _spendAllowance(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
+    function _spendAllowance(address owner,address spender,uint256 amount) internal virtual {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
-            require(currentAllowance >= amount, "ERC1030: insufficient allowance");
+            require(currentAllowance >= amount);
             unchecked {
                 _approve(owner, spender, currentAllowance - amount);
             }
         }
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _beforeTokenTransfer(address from,address to,uint256 amount) internal virtual {}
 
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _afterTokenTransfer(address from,address to,uint256 amount) internal virtual {}
 
     function getOwner() external view returns(address){
         return owner;
@@ -530,7 +191,6 @@ contract ERC1030 is Context, IERC1030, Auth {
 }
 
 contract gemDAO is ERC1030 {
-    using SafeMath for uint256;
     
     address payable private ADMIN;
 
@@ -593,7 +253,7 @@ contract gemDAO is ERC1030 {
     event ReceivedFallback(address, uint);
 
     modifier onlyOperator {
-        require(msg.sender == ADMIN, "Only operator can call ");
+        require(msg.sender == ADMIN);
         _;
     } 
 
@@ -650,8 +310,8 @@ contract gemDAO is ERC1030 {
     }
     
     function pollDAOGovernanceNoms(address _nominee) public returns(bool) {
-        require((_msgSender() != _nominee), "Can not cast votes for self");
-        require(getDaoBlock() == 0, "Polls closed");
+        require((_msgSender() != _nominee));
+        require(getDaoBlock() == 0);
         uint DAO_nom_genesis = nomPollGenesis;
         if(nomPollStarted == false){
             DAO_nom_genesis = startNomPolls();
@@ -678,16 +338,16 @@ contract gemDAO is ERC1030 {
     }
 
     function claimNomRebate(uint256 amount) public {
-        require(_NOMvotes[_msgSender()] >= luck,"Not nominated");
-        require(nomPollEnded == true,"Not permitted");
+        require(_NOMvotes[_msgSender()] >= luck);
+        require(nomPollEnded == true);
         uint256 local_debt_limit = getDAODebtLimit(address(this), _msgSender());
         require(local_debt_limit > 0);
         require(amount <= local_debt_limit);
         reduceDebtLimit(address(this), _msgSender(), amount);
-        if(amount > IERC1030(address(this)).balanceOf(address(this))){
+        if(amount > IERC20(address(this)).balanceOf(address(this))){
             _mint(_msgSender(), amount);
         } else {
-            IERC1030(address(this)).transferFrom(address(this), _msgSender(), amount);
+            IERC20(address(this)).transferFrom(address(this), _msgSender(), amount);
         }
         increaseDebt(address(this), _msgSender(), amount);
         emit NetworkMint(address(this), amount);
@@ -707,10 +367,10 @@ contract gemDAO is ERC1030 {
     }
     
     function pollDAOGovernance(address _candidate) public returns(bool) {
-        require(_NOMvotes[_candidate] >= luck, "Polls closed");
-        require(_OPSvotes[_candidate] <= superPollCap, "Polls closed");
-        require((_msgSender() != _candidate), "Can not cast votes for self");
-        require(getDaoBlock() == 0, "Polls closed");
+        require(_NOMvotes[_candidate] >= luck);
+        require(_OPSvotes[_candidate] <= superPollCap);
+        require((_msgSender() != _candidate));
+        require(getDaoBlock() == 0);
         _OPSvotes[_candidate]++;
         uint DAO_genesis = pollGenesis;
         if(pollStarted == false){
@@ -726,7 +386,7 @@ contract gemDAO is ERC1030 {
             // to vote on debt limit raises && reductions, and various other CA maintenance 
             if(_OPSvotes[_candidate] == superPollCap){
                 ttlDAO_GPV++;
-                require(_OPSvotes[_candidate] == superPollCap, "Polls closed");
+                require(_OPSvotes[_candidate] == superPollCap);
                 authorize(_candidate);
             }
         } else if(!pollEnded && block.timestamp > (pollGenesis + polling)){
@@ -738,16 +398,16 @@ contract gemDAO is ERC1030 {
     }
 
     function pollDAODebtLimit(address _debtor, string memory _direction) public authorized returns(bool) {
-        require(_CREDITvotes[_debtor] <= debtPollCap, "Campaign succeeded");
-        require(_NOMvotes[_msgSender()] >= luck, "Not lucky");
-        require(_OPSvotes[_msgSender()] >= superPollCap, "Not permitted");
-        require((_msgSender() != _debtor), "Can not cast votes to self");
+        require(_CREDITvotes[_debtor] <= debtPollCap);
+        require(_NOMvotes[_msgSender()] >= luck);
+        require(_OPSvotes[_msgSender()] >= superPollCap);
+        require((_msgSender() != _debtor));
         ttlDAO_DPV++;
         _CREDITvotes[_debtor]++;
         if(_CREDITvotes[_debtor] == debtPollCap){
-            require(_CREDITvotes[_debtor] == debtPollCap, "Polls closed");
-            uint256 _debtCeiling = IERC1030(address(this)).balanceOf(_msgSender()) / debt_basis;
-            require(address(this).balance >= _debtCeiling, "Can not afford debt, deposit coin(s)");
+            require(_CREDITvotes[_debtor] == debtPollCap);
+            uint256 _debtCeiling = IERC20(address(this)).balanceOf(_msgSender()) / debt_basis;
+            require(address(this).balance >= _debtCeiling);
             if(keccak256(abi.encodePacked(_direction)) == keccak256(abi.encodePacked(string("UP")))){
                 increaseDebtLimit(address(this), _debtor, _debtCeiling);
             } else if(keccak256(abi.encodePacked(_direction)) == keccak256(abi.encodePacked(string("DOWN")))){
@@ -776,11 +436,11 @@ contract gemDAO is ERC1030 {
     }
 
     function pollDAOPrecision(string memory _direction) public authorized returns(bool) {
-        require(_UNITvotes[address(this)] <= precisionPollCap, "Campaign succeeded");
+        require(_UNITvotes[address(this)] <= precisionPollCap);
         // ttlDAO_DPV++;
         _UNITvotes[address(this)]++;
         if(_UNITvotes[address(this)] == precisionPollCap){
-            require(_UNITvotes[address(this)] == precisionPollCap, "Polls closed");
+            require(_UNITvotes[address(this)] == precisionPollCap);
             if(keccak256(abi.encodePacked(_direction)) == keccak256(abi.encodePacked(string("UP"))) && _DECIMALS < 18){
                 increasePrecision(1);
             } else if(keccak256(abi.encodePacked(_direction)) == keccak256(abi.encodePacked(string("DOWN"))) && _DECIMALS > 1){
@@ -792,15 +452,15 @@ contract gemDAO is ERC1030 {
     
     function pollDAOBurn() public returns(bool) {
         address _burnedWallet = address(this);
-        require(_BURNvotes[_burnedWallet] <= burnPollCap, "Campaign succeeded");
+        require(_BURNvotes[_burnedWallet] <= burnPollCap);
         ttlDAO_BPV++;
         _BURNvotes[_burnedWallet]++;
         
         if(_BURNvotes[_burnedWallet] == burnPollCap){
-            require(_BURNvotes[_burnedWallet] == burnPollCap, "Polls closed");
+            require(_BURNvotes[_burnedWallet] == burnPollCap);
             string memory burnLimit = address(this).balance <= 10000 ether ? string("MID") : address(this).balance <= 1000 ether ? string("LOW") : string("HIGH");
             uint256 _burnAmt = getBurnLimit(_burnedWallet, burnLimit);
-            require(address(this).balance >= _burnAmt, "Can not afford burn, deposit coin(s)");
+            require(address(this).balance >= _burnAmt);
             _burn(address(_burnedWallet), _burnAmt);
         }
         return true;
@@ -808,13 +468,13 @@ contract gemDAO is ERC1030 {
 
     function getBurnLimit(address _burnedWallet, string memory _burnCeiling) internal virtual returns(uint256) {
         if(keccak256(abi.encodePacked(_burnCeiling)) == keccak256(abi.encodePacked(string("LOW")))){
-            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
+            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
         } else if(keccak256(abi.encodePacked(_burnCeiling)) == keccak256(abi.encodePacked(string("MID")))){
-            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * (debt_basis / 2));
+            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * (debt_basis / 2));
         } else if(keccak256(abi.encodePacked(_burnCeiling)) == keccak256(abi.encodePacked(string("HIGH")))){
-            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / debt_basis;
+            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / debt_basis;
         } else {
-            _burnLimit = IERC1030(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
+            _burnLimit = IERC20(address(this)).balanceOf(address(_burnedWallet)) / (debt_basis * debt_basis);
         }
         return _burnLimit;
     }
@@ -878,12 +538,12 @@ contract gemDAO is ERC1030 {
         increaseDebt(address(this), _msgSender(), amount);
         // payable(_msgSender()).transfer(amount);
         (bool success, ) = payable(msg.sender).call{value: amount}("");
-        require(success, "Failed to process withdraw");
+        require(success);
         emit NetworkWithdrawal(_msgSender(), amount);
     }
 
     function networkWithdrawToken(uint amount) public authorized {
-        require(amount <= IERC1030(address(this)).balanceOf(address(this)), "Request exceeds contract token balance.");
+        require(amount <= IERC20(address(this)).balanceOf(address(this)));
         uint256 local_debt_limit = getDAODebtLimit(address(this), _msgSender());
         require(local_debt_limit > 0);
         reduceDebtLimit(address(this), _msgSender(), amount);
@@ -893,11 +553,11 @@ contract gemDAO is ERC1030 {
     }
 
     function networkMintToken(uint amount) public {
-        require(amount <= IERC1030(address(this)).balanceOf(address(this)), "Request exceeds contract token balance.");
+        require(amount <= IERC20(address(this)).balanceOf(address(this)));
         uint256 local_debt_limit = getDAODebtLimit(address(this), _msgSender());
         require(local_debt_limit > 0);
-        uint256 _debtlimit = IERC1030(address(this)).balanceOf(_msgSender()) / debt_basis;
-        require(address(this).balance >= _debtlimit, "Can not afford debt, deposit coin(s).");
+        uint256 _debtlimit = IERC20(address(this)).balanceOf(_msgSender()) / debt_basis;
+        require(address(this).balance >= _debtlimit);
         reduceDebtLimit(address(this), _msgSender(), amount);
         increaseDebt(address(this), _msgSender(), amount);
         _mint(address(this), amount);
