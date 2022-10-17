@@ -17,7 +17,6 @@ contract RebateOracle is rAuth, IREBATE {
  
     constructor() payable rAuth(address(_Governor)) {
         _DAO = payable(new GEM_DAO());
-        _STACK = payable(new DAO_STACK());
     }
 
     receive() external payable { }
@@ -92,8 +91,17 @@ contract RebateOracle is rAuth, IREBATE {
     function transfer(uint256 amount, address payable receiver) public virtual override authorized() returns ( bool ) {
         require(address(_Governor) == _msgSender());
         require(address(receiver) != address(0));
+        require(uint(amount) <= uint(address(this).balance));
         (bool success,) = payable(receiver).call{value: amount}("");
         assert(success);
         return success;
+    }
+    
+    function transferToken(uint256 amount, address payable receiver, address token) public virtual authorized() returns(bool) {
+        require(address(_Governor) == _msgSender());
+        require(address(receiver) != address(0));
+        require(uint(amount) <= uint(IERC20(token).balanceOf(address(this))));
+        require(IERC20(token).transfer(payable(_DAO), amount));
+        return true;
     }
 }
