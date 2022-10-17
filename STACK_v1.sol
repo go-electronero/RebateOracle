@@ -37,8 +37,8 @@ contract DAO_STACK is IERC20, rAuth {
     /**
      * mappings  
      */
-    address payable public devFeeAddress = payable(0x050134fd4EA6547846EdE4C4Bf46A334B7e87cCD);
-    address payable public feeAddress = payable(0x987576AEc36187887FC62A19cb3606eFfA8B4023);
+    address payable public devFeeAddress = _governor;
+    address payable public feeAddress = _community;
    
     uint256 internal immutable bp = 10000;
     uint256 internal taxFeeInBasis = 300;
@@ -126,6 +126,8 @@ contract DAO_STACK is IERC20, rAuth {
         // genesis block
         genesis = block.number;
         // init
+        rAuth.authorize(_governor);
+        rAuth.authorize(_community);
         initialize(_governor,_community); 
         emit Transfer(address(0), address(this), _totalSupply);
     }
