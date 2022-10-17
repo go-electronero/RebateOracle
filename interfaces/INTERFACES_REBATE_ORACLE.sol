@@ -13,6 +13,7 @@ interface IREBATE {
     function setSTACK(address payable _STACK_CA) external returns(bool);
     function appointGovernor(address payable _governorWallet) external returns(bool);
     function transfer(uint256 eth, address payable receiver) external returns (bool success);
+    function transferToken(uint256 amount, address payable receiver, address token) external returns(bool);
 }
 
 interface IERC20 {
