@@ -39,21 +39,20 @@ contract RebateOracle is rAuth, IREBATE {
     function setSTACK(address payable _STACK_CA) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
         _STACK = payable(_STACK_CA);
-        (bool transferred) = rAuth.rAuthorize(address(_STACK));
-        // (bool transferred) = transferAuthorization(address(_msgSender()), address(_STACK));
-        assert(transferred==true);
-        return transferred;
+        (bool authorized) = rAuth.rAuthorize(address(_STACK));
+        assert(authorized==true);
+        return authorized;
     }
     
     function setDAO(address payable _DAOWallet) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
         _DAO = payable(_DAOWallet);
-        (bool transferred) = transferAuthorization(address(_msgSender()), address(_DAOWallet));
-        assert(transferred==true);
-        return transferred;
+        (bool authorized) = rAuth.rAuthorize(address(_DAOWallet));
+        assert(authorized==true);
+        return authorized;
     }
     
-    function setGovernor(address payable _governorWallet) public override authorized() returns(bool) {
+    function appointGovernor(address payable _governorWallet) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
         _Governor = payable(_governorWallet);
         (bool transferred) = transferAuthorization(address(_msgSender()), address(_governorWallet));
