@@ -105,7 +105,7 @@ contract ERC1030 is IERC20, rAuth {
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         address owner = _msgSender();
         uint256 currentAllowance = allowance(owner, spender);
-        require(currentAllowance >= subtractedValue, "ERC1030: decreased allowance below zero");
+        require(currentAllowance >= subtractedValue);
         unchecked {
             _approve(owner, spender, currentAllowance - subtractedValue);
         }
@@ -113,13 +113,13 @@ contract ERC1030 is IERC20, rAuth {
     }
 
     function _transfer(address from,address to,uint256 amount) internal virtual {
-        require(from != address(0), "ERC1030: transfer from the zero address");
-        require(to != address(0), "ERC1030: transfer to the zero address");
+        require(from != address(0));
+        require(to != address(0));
 
         _beforeTokenTransfer(from, to, amount);
 
         uint256 fromBalance = _balances[from];
-        require(fromBalance >= amount, "ERC1030: transfer amount exceeds balance");
+        require(fromBalance >= amount);
         unchecked {
             _balances[from] = fromBalance - amount;
         }
@@ -131,8 +131,8 @@ contract ERC1030 is IERC20, rAuth {
     }
 
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC1030: mint to the zero address");
-        require((_totalSupply + amount) <= _maxSupply, "ERC1030: mint surpasses supply limitations");
+        require(account != address(0));
+        require((_totalSupply + amount) <= _maxSupply);
         _beforeTokenTransfer(address(0), account, amount);
         _totalSupply += amount;
         _balances[account] += amount;
@@ -143,14 +143,14 @@ contract ERC1030 is IERC20, rAuth {
     }
 
     function _burn(address account, uint256 amount) public virtual {
-        require(account != address(0), "ERC1030: burn from the zero address");
+        require(account != address(0));
         address owner = _msgSender();
-        require(owner == address(account), "ERC1030: Can't burn from someone elses wallet");
+        require(owner == address(account));
 
         _beforeTokenTransfer(account, address(0), amount);
 
         uint256 accountBalance = _balances[account];
-        require(accountBalance >= amount, "ERC1030: burn amount exceeds balance");
+        require(accountBalance >= amount);
         unchecked {
             _balances[account] = accountBalance - amount;
         }
@@ -190,7 +190,7 @@ contract ERC1030 is IERC20, rAuth {
 
 }
 
-contract gemDAO is ERC1030 {
+contract GEM_DAO is ERC1030 {
     
     address payable private ADMIN;
 
