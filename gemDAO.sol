@@ -6,7 +6,7 @@
 // ·▀▀▀▀  ▀▀▀ ▀▀  █▪▀▀▀▀▀▀▀▀•  ▀  ▀  ▀█▄▀▪
 pragma solidity 0.8.13;
 
-import "./auth/rAuth.sol";
+import "./STACK_v1.sol";
 
 contract ERC1030 is IERC20, rAuth {
 
