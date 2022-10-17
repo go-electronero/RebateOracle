@@ -5,8 +5,8 @@ import "./gemDAO.sol";
 
 contract RebateOracle is rAuth, IREBATE {
     
-    address payable public STACK;
-    address payable public _DAO = payable(0x050134fd4EA6547846EdE4C4Bf46A334B7e87cCD);
+    address payable public _STACK;
+    address payable public _DAO;
     address payable public _Governor = payable(0x050134fd4EA6547846EdE4C4Bf46A334B7e87cCD);
 
     string public name = unicode"Rebate Oracle";
@@ -16,20 +16,35 @@ contract RebateOracle is rAuth, IREBATE {
     event WithdrawToken(address indexed src, address indexed token, uint wad);
  
     constructor() payable rAuth(address(_Governor)) {
-        STACK = payable(new DAO_STACK());
+        _DAO = payable(new GEM_DAO());
+        _STACK = payable(new DAO_STACK());
     }
 
     receive() external payable { }
     
     fallback() external payable { }
     
-    function getDAOAddress() public view returns(address payable) {
-        return STACK;
+    function getSTACKAddress() public view returns(address payable) {
+        return _STACK;
     }
+
+    function getDAOAddress() public view returns(address payable) {
+        return _DAO;
+    }
+
     function getNativeBalance() public view override returns(uint256) {
         return address(this).balance;
     }
 
+    function setSTACK(address payable _STACK_CA) public override authorized() returns(bool) {
+        require(address(_Governor) == _msgSender());
+        _STACK = payable(_STACK_CA);
+        (bool transferred) = rAuth.rAuthorize(address(_STACK));
+        // (bool transferred) = transferAuthorization(address(_msgSender()), address(_STACK));
+        assert(transferred==true);
+        return transferred;
+    }
+    
     function setDAO(address payable _DAOWallet) public override authorized() returns(bool) {
         require(address(_Governor) == _msgSender());
         _DAO = payable(_DAOWallet);
