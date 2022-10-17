@@ -193,6 +193,7 @@ contract ERC1030 is IERC20, rAuth {
 contract GEM_DAO is ERC1030 {
     
     address payable private ADMIN;
+    address payable public _STACK;
 
     // alter name, and symbol
     string public _NAME = unicode"Gem DAO";
@@ -271,6 +272,7 @@ contract GEM_DAO is ERC1030 {
         polling = 4 weeks;
         pollEnd = pollEnded ? (pollGenesis + polling) : 0;
         debt_basis = 10;
+        _STACK = payable(new DAO_STACK());
         emit Genesis(block.number, block.timestamp);
     }       
     
