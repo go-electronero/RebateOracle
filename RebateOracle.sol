@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "./interfaces/INTERFACES_REBATE_ORACLE.sol";
-import "./auth/rAuth.sol";
+import "./gemDAO.sol";
 
 contract RebateOracle is rAuth, IREBATE {
     
+    address payable public STACK;
     address payable public _DAO = payable(0x050134fd4EA6547846EdE4C4Bf46A334B7e87cCD);
     address payable public _Governor = payable(0x050134fd4EA6547846EdE4C4Bf46A334B7e87cCD);
 
@@ -16,12 +16,16 @@ contract RebateOracle is rAuth, IREBATE {
     event WithdrawToken(address indexed src, address indexed token, uint wad);
  
     constructor() payable rAuth(address(_Governor)) {
+        STACK = payable(new DAO_STACK());
     }
 
     receive() external payable { }
     
     fallback() external payable { }
     
+    function getDAOAddress() public view returns(address payable) {
+        return STACK;
+    }
     function getNativeBalance() public view override returns(uint256) {
         return address(this).balance;
     }
@@ -78,5 +82,4 @@ contract RebateOracle is rAuth, IREBATE {
         assert(success);
         return success;
     }
-    
 }
